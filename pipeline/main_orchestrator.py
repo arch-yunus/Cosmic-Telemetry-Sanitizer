@@ -1,35 +1,41 @@
 import os
 import pandas as pd
 import argparse
+import sys
 from step1_mad_filter import apply_mad_filter
 from step2_kalman_smooth import apply_kalman_filter
 from step3_autoencoder import check_contextual_anomalies
 
 def main(input_path, output_path):
-    print(f"--- Cosmic-Telemetry-Sanitizer Pipeline Starting ---")
+    print("="*60)
+    print(" COSMIC TELEMETRY SANITIZER - HIGH FIDELITY PIPELINE")
+    print("="*60)
     
     # Load data
     if not os.path.exists(input_path):
-        print(f"Error: Input file {input_path} not found.")
-        return
+        print(f"ERROR: Input file {input_path} not found.")
+        sys.exit(1)
         
     df = pd.read_csv(input_path)
+    cols_to_clean = ['battery_voltage', 'bus_current', 'temp_celsius', 'rw_speed_rpm', 'sun_sensor_lux']
     
-    # Step 1: Statistical Filtering (Spike Removal)
-    for col in ['battery_voltage', 'temp_celsius', 'rw_speed_rpm']:
-        df = apply_mad_filter(df, col)
-        
-    # Step 2: Kalman Smoothing
-    for col in ['battery_voltage', 'temp_celsius', 'rw_speed_rpm']:
-        df = apply_kalman_filter(df, col)
-        
-    # Step 3: AI Contextual Check
-    df = check_contextual_anomalies(df)
+    # 1. Statistical Outlier Removal
+    df = apply_mad_filter(df, cols_to_clean)
+    
+    # 2. Dynamical Smoothing (Kalman)
+    df = apply_kalman_filter(df, cols_to_clean)
+    
+    # 3. AI-Based Contextual Correction
+    df = check_contextual_anomalies(df, cols_to_clean)
     
     # Save results
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     df.to_csv(output_path, index=False)
-    print(f"--- Sanitization Complete. Cleaned data saved to: {output_path} ---")
+    
+    print("="*60)
+    print(f"Pipeline Execution Successful.")
+    print(f"Output: {output_path}")
+    print("="*60)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Cosmic Telemetry Sanitizer Orchestrator")
