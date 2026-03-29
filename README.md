@@ -50,74 +50,48 @@ Klasik alt-üst sınır (threshold) uyarı sistemleri bu durumlarda gereksiz ala
 
 ## 🧠 Teknik Yaklaşım ve Sistem Mimarisi (Pipeline Katmanları)
 
-
-
-Veri işleme hattı, ham telemetri verisini alıp 3 aşamalı bir filtreden geçirerek "Temiz Veri Havuzuna" (Data Lake) aktarır:
-
-
+Veri işleme hattı, ham telemetri verisini alıp 5 aşamalı bir filtreden geçirerek "Temiz Veri Havuzuna" (Data Lake) aktarır:
 
 ### 1. Katman: İstatistiksel Filtreleme (Spike Removal)
+Median Absolute Deviation (MAD) kullanılarak, donanımsal bit kaymalarının yarattığı anlık, fiziksel olarak imkansız "Spike" (sıçrama) gürültüleri tespit edilir ve budanır.
 
-Gelen zaman serisi (Time-Series) verilerine anında müdahale eden ilk savunma hattıdır. Hareketli medyan (Moving Median Absolute Deviation - MAD) kullanılarak, donanımsal bit kaymalarının yarattığı anlık, fiziksel olarak imkansız "Spike" (sıçrama) gürültüleri tespit edilir ve budanır.
-
-
-
-### 2. Katman: Dinamik Durum Kestirimi (Genişletilmiş Kalman Filtresi)
-
-Fiziksel sensörler (Örn: Tepki tekerleği hızları, batarya deşarj eğrisi) için Genişletilmiş Kalman Filtresi (EKF) uygulanır. Sistem, sensörün bir önceki durumuna bakarak bir sonraki adımda ne olması gerektiğini matematiksel olarak tahmin eder:
-
-
-
-$$\hat{x}_k = A \hat{x}_{k-1} + B u_k$$
-
-$$P_k = A P_{k-1} A^T + Q$$
-
-
-
-Eğer sensörden gelen bozuk veri ile Kalman'ın tahmin ettiği veri arasındaki fark (inovasyon) çok yüksekse, sistem bozuk veriyi reddeder ve tahmini veriyi kullanarak kopukluğu (imputation) doldurur.
-
-
+### 2. Katman: Dinamik Durum Kestirimi (Kalman Filtresi)
+Fiziksel sensörler için 1D Adaptif Kalman Filtresi uygulanır. Sistem, sensörün bir önceki durumuna bakarak gürültüyü sönümler ve sinyal stabilitesini sağlar.
 
 ### 3. Katman: Çok Değişkenli AI Anomali Tespiti
+Gözetimsiz Öğrenme (Isolation Forest) modeli kullanılır. Sensörler arası korelasyon bozulmalarını (örneğin akım yüksek ama durum kapalı) tespit eder.
 
-Tüm alt sistemlerin birbirleriyle olan ilişkisini analiz etmek için Gözetimsiz Öğrenme (Autoencoders) modeli kullanılır. Örneğin; termal sensör sıcaklık artışı raporlarken, ilgili alt sistem kapalı görünüyorsa, model bu bağlamsal zıtlığı "radyasyon kaynaklı paket bozulması" olarak etiketler.
+### 4. Katman: Spektral Arındırma (Butterworth Filter)
+Kalan yüksek frekanslı salınım gürültülerini Butterworth Alçak Geçiren Filtre kullanarak temizler. Sinyalin pürüzsüzleşmesini sağlar.
 
-
+### 5. Katman: Fiziksel Sınır Doğrulama (Safety Bounds)
+Domain-specific kurallara göre (Örn: Batarya 10V-36V arası olmalı) veriyi nihai olarak doğrular ve fiziksel imkansızlıkları "clamp" eder.
 
 ---
 
-
-
 ## 📂 Depo Yapısı (Repository Structure)
 
-
-
 ```text
-
 Cosmic-Telemetry-Sanitizer/
-
+├── app.py                      # Interaktif Streamlit Dashboard
+├── config/
+│   └── settings.json           # Pipeline parametreleri (Window sizes, bounds)
 ├── data/
-
-│   ├── raw_telemetry/          # SEU (bit-flip) bozulmaları içeren sentetik ham veri
-
-│   └── sanitized_telemetry/    # Pipeline'dan çıkmış temizlenmiş, operasyonel veriler
-
+│   ├── raw_telemetry/          # Ham veri (anomali içerir)
+│   └── sanitized_telemetry/    # Temizlenmiş operasyonel veri
+├── docs/
+│   └── SYSTEM_DESIGN.md        # Matematiksel ve mimari detaylar
 ├── pipeline/
-
-│   ├── step1_mad_filter.py     # İstatistiksel sıçrama filtresi
-
-│   ├── step2_kalman_smooth.py  # Dinamik durum kestirimi ve veri doldurma
-
-│   └── step3_autoencoder.py    # Çok değişkenli AI bağlam kontrolü
-
-├── notebooks/
-
-│   └── Data_Reconstruction_Demo.ipynb # Öncesi/Sonrası (Before/After) görsel analizi
-
+│   ├── step1_mad_filter.py
+│   ├── step2_kalman_smooth.py
+│   ├── step3_autoencoder.py
+│   ├── step4_spectral_denoise.py
+│   └── step5_physical_bounds.py
+├── scripts/
+│   ├── cli.py
+│   └── generate_data.py
 ├── requirements.txt
-
 └── README.md
-
 ```
 
 

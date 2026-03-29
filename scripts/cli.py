@@ -11,9 +11,10 @@ def run_generate_data(args):
 def run_pipeline(args):
     """Execute the full pipeline sequentially."""
     orchestrator = Path(__file__).parent.parent / "pipeline" / "main_orchestrator.py"
-    cmd = [sys.executable, str(orchestrator), "--input", args.input, "--output-dir", args.output_dir]
-    if args.skip_step:
-        cmd.append(f"--skip-step={args.skip_step}")
+    output_file = Path(args.output_dir) / "cleaned_orbit_data.csv"
+    cmd = [sys.executable, str(orchestrator), "--input", args.input, "--output", str(output_file)]
+    if args.config:
+        cmd.extend(["--config", args.config])
     subprocess.run(cmd, check=True)
 
 def run_visualize(args):
@@ -31,13 +32,17 @@ def main():
 
     pipe_parser = subparsers.add_parser("run-pipeline", help="Run the full sanitization pipeline")
     pipe_parser.add_argument("--input", required=True, help="Path to raw telemetry CSV")
-    pipe_parser.add_argument("--output-dir", default="data/processed", help="Directory for processed data")
-    pipe_parser.add_argument("--skip-step", choices=["mad", "kalman", "autoencoder"], help="Skip a specific pipeline step")
+    pipe_parser.add_argument("--output-dir", default="data/sanitized_telemetry", help="Directory for processed data")
+    pipe_parser.add_argument("--config", default="config/settings.json", help="Path to config JSON")
     pipe_parser.set_defaults(func=run_pipeline)
 
     viz_parser = subparsers.add_parser("visualize", help="Visualize pipeline results")
     viz_parser.add_argument("--input", required=True, help="Path to processed telemetry CSV")
     viz_parser.set_defaults(func=run_visualize)
+
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(0)
 
     args = parser.parse_args()
     args.func(args)

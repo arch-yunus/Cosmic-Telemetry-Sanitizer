@@ -40,6 +40,13 @@ def generate_telemetry(n_rows=1000):
     
     # Inject Sensor Drift
     df.loc[800:, 'temp_celsius'] += np.linspace(0, 20, n_rows - 800)
+
+    # NEW: Inject Sensor Stalling (Flatline)
+    df.loc[200:230, 'rw_speed_rpm'] = df.loc[200, 'rw_speed_rpm']
+
+    # NEW: Inject Periodic Interference (Sine gürültüsü)
+    interference = 5.0 * np.sin(np.linspace(0, 50, 100))
+    df.loc[600:699, 'sun_sensor_lux'] += interference
     
     os.makedirs('data/raw_telemetry', exist_ok=True)
     df.to_csv('data/raw_telemetry/sample_orbit_data.csv', index=False)

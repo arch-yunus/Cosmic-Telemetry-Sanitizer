@@ -1,5 +1,8 @@
 import numpy as np
 import pandas as pd
+import logging
+
+logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 
 def apply_mad_filter(df, columns, window=15, threshold=3.5):
     """
@@ -41,7 +44,7 @@ def apply_mad_filter(df, columns, window=15, threshold=3.5):
         # Impute outliers with rolling median
         df_clean.loc[outliers, col] = rolling_median[outliers]
 
-    print(f"[Step 1: MAD] Scanned {len(columns)} columns. Found and mitigated {anomalies_count} point anomalies.")
+    logging.info(f"[Step 1: MAD] Scanned {len(columns)} columns. Found and mitigated {anomalies_count} point anomalies.")
     return df_clean
 
 if __name__ == "__main__":
