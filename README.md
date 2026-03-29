@@ -1,4 +1,4 @@
-﻿
+
 
 # 🛰️ Cosmic-Telemetry-Sanitizer: Kozmik Veri Ayıklama ve İşleme Hattı
 
@@ -130,35 +130,43 @@ Cosmic-Telemetry-Sanitizer/
 
 Geliştirilen veri arındırma hattını kendi makinenizde test etmek için:
 
-
-
 ```bash
-
 # Depoyu klonlayın
-
-git clone [https://github.com/kullaniciadi/Cosmic-Telemetry-Sanitizer.git](https://github.com/kullaniciadi/Cosmic-Telemetry-Sanitizer.git)
-
+git clone https://github.com/kullaniciadi/Cosmic-Telemetry-Sanitizer.git
 cd Cosmic-Telemetry-Sanitizer
 
-
-
 # Gerekli bağımlılıkları yükleyin
-
 pip install -r requirements.txt
 
+# Sentetik veri üretin
+python scripts/generate_data.py --output-dir data/raw_telemetry
 
+# Tam pipeline'ı çalıştırın
+python scripts/cli.py run-pipeline --input data/raw_telemetry/sample_orbit_data.csv --output-dir data/processed
 
-# İçerisine yapay radyasyon hataları eklenmiş sentetik veriyi temizleme hattına sokun
-
-python pipeline/main_orchestrator.py --input "data/raw_telemetry/sample_orbit_data.csv"
-
+# Sonuçları görselleştirin
+python scripts/cli.py visualize --input data/processed/kalman_smoothed.csv
 ```
 
+## 📦 Kullanım (CLI)
 
+Proje, bir komut satırı arayüzü (`cosmic-sanitizer`) sunar:
+
+```bash
+# Yardım menüsü
+python scripts/cli.py -h
+
+# Veri üretimi
+python scripts/cli.py generate-data --output-dir data/raw_telemetry
+
+# Pipeline çalıştırma (isteğe bağlı adım atlama)
+python scripts/cli.py run-pipeline --input data/raw_telemetry/sample_orbit_data.csv --output-dir data/processed --skip-step mad
+
+# Görselleştirme
+python scripts/cli.py visualize --input data/processed/kalman_smoothed.csv
+```
 
 ---
-
-
 
 ## 📈 Gelecek Vizyonu
 
